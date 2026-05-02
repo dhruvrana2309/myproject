@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InkDrop — Blog Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0C0C0C;--bg2:#101010;--bg3:#141414;
+  --surface:rgba(255,255,255,0.04);--surface2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --orange:#F97316;--orange-l:#FB923C;--orange-d:rgba(249,115,22,0.12);
+  --amber:#EAB308;--amber-l:#FDE68A;--amber-d:rgba(234,179,8,0.1);
+  --red:#EF4444;--red-d:rgba(239,68,68,0.12);
+  --green:#22C55E;--green-d:rgba(34,197,94,0.12);
+  --text:#fff;--muted:rgba(255,255,255,0.45);--faint:rgba(255,255,255,0.2);
+  --font:'Space Grotesk',sans-serif;--display:'Bebas Neue',sans-serif;
+  --r:8px;--r-lg:12px;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+
+@keyframes flicker{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.3}94%{opacity:1}97%{opacity:.6}98%{opacity:1}}
+@keyframes drift{0%{transform:translate(0,0)}33%{transform:translate(8px,-10px)}66%{transform:translate(-6px,6px)}100%{transform:translate(0,0)}}
+@keyframes drift2{0%{transform:translate(0,0)}33%{transform:translate(-10px,8px)}66%{transform:translate(8px,-8px)}100%{transform:translate(0,0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseOrange{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0)}50%{box-shadow:0 0 16px 3px rgba(249,115,22,0.2)}}
+@keyframes shimmerBtn{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@keyframes textShimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.shell{display:flex;min-height:100vh;position:relative}
+.orb1{position:fixed;width:400px;height:400px;border-radius:50%;background:rgba(249,115,22,0.1);filter:blur(100px);top:-80px;left:-80px;animation:drift 14s ease-in-out infinite;pointer-events:none;z-index:0}
+.orb2{position:fixed;width:300px;height:300px;border-radius:50%;background:rgba(234,179,8,0.07);filter:blur(80px);bottom:-60px;right:-60px;animation:drift2 18s ease-in-out infinite;pointer-events:none;z-index:0}
+
+.sidebar{width:240px;flex-shrink:0;background:rgba(12,12,12,0.97);border-right:0.5px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;padding:24px 16px;position:sticky;top:0;height:100vh;z-index:10;animation:fadeUp .4s ease}
+.logo{display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:36px}
+.logo-icon{font-family:var(--display);font-size:24px;color:var(--orange);animation:flicker 6s ease-in-out infinite}
+.logo-text{font-family:var(--display);font-size:22px;letter-spacing:.08em;background:linear-gradient(90deg,#fff 0%,var(--orange-l) 40%,var(--orange) 60%,#fff 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 4s linear infinite}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .2s}
+.nav-item:hover,.nav-item.active{background:var(--orange-d);color:var(--orange);border-left:2px solid var(--orange)}
+.user-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--orange-d);border:1.5px solid rgba(249,115,22,0.3);color:var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:18px;flex-shrink:0;animation:pulseOrange 4s ease-in-out infinite}
+.user-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+
+.main{flex:1;background:var(--bg2);padding:36px 40px;overflow-y:auto;position:relative;z-index:1}
+.page{display:none}.page.active{display:block}
+
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;animation:fadeUp .3s ease}
+.page-title{font-family:var(--display);font-size:42px;letter-spacing:.06em;line-height:1;background:linear-gradient(90deg,#fff 0%,var(--orange-l) 40%,var(--orange) 60%,#fff 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 5s linear infinite}
+.page-sub{font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--muted);margin-top:4px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px}
+.stat{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;transition:all .2s;animation:popIn .4s ease both}
+.stat:nth-child(1){animation-delay:.05s}.stat:nth-child(2){animation-delay:.1s}.stat:nth-child(3){animation-delay:.15s}.stat:nth-child(4){animation-delay:.2s}
+.stat:hover{transform:translateY(-2px);border-color:rgba(249,115,22,0.3)}
+.stat-label{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.stat-num{font-family:var(--display);font-size:36px;letter-spacing:.04em;background:linear-gradient(90deg,#fff,var(--orange-l),#fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 4s linear infinite}
+.stat.s2 .stat-num{background:linear-gradient(90deg,#fff,var(--amber-l),#fff);background-size:200% auto;-webkit-background-clip:text;background-clip:text;animation:textShimmer 4s linear infinite}
+.stat.s2{border-color:rgba(234,179,8,0.2)}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;animation:fadeUp .3s .1s ease both;flex-wrap:wrap}
+.filters{display:flex;gap:10px;flex-wrap:wrap}
+select,input[type=text],input[type=email],input[type=password],input[type=search]{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:9px 14px;color:var(--text);font-family:var(--font);font-size:12px;letter-spacing:.02em;outline:none;transition:border-color .2s,box-shadow .2s}
+select:focus,input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(249,115,22,0.1)}
+select option{background:#1a1a1a}
+input::placeholder{color:var(--faint)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--r);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;font-family:var(--font);transition:all .2s;position:relative;overflow:hidden}
+.btn-primary{background:var(--orange);color:#0C0C0C}
+.btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transform:translateX(-100%)}
+.btn-primary:hover{background:var(--orange-l);transform:translateY(-2px);box-shadow:0 6px 20px rgba(249,115,22,.35)}
+.btn-primary:hover::after{animation:shimmerBtn .5s ease}
+.btn-primary:active{transform:scale(.97)}
+.btn-ghost{background:var(--surface);color:var(--muted);border:0.5px solid var(--border)}.btn-ghost:hover{border-color:var(--border2);color:var(--text);transform:translateY(-1px)}
+.btn-danger{background:var(--red-d);color:var(--red);border:0.5px solid rgba(239,68,68,.25)}.btn-danger:hover{background:rgba(239,68,68,.2);transform:translateY(-1px)}
+.btn-sm{padding:5px 12px;font-size:10px}
+
+/* Post Cards */
+.posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.post-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);overflow:hidden;transition:all .2s;animation:slideIn .25s ease both;cursor:pointer}
+.post-card:hover{transform:translateY(-4px);border-color:rgba(249,115,22,.35);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.post-banner{height:6px;background:linear-gradient(90deg,var(--orange),var(--amber))}
+.post-body{padding:18px}
+.post-cat{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.post-title{font-family:var(--display);font-size:20px;letter-spacing:.04em;color:#fff;margin-bottom:8px;line-height:1.1}
+.post-excerpt{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.post-footer{display:flex;align-items:center;justify-content:space-between;border-top:0.5px solid var(--border);padding-top:12px}
+.post-author{font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.04em}
+.post-meta{display:flex;align-items:center;gap:8px}
+.comment-count{font-size:11px;color:var(--faint);display:flex;align-items:center;gap:4px}
+.post-date{font-size:10px;color:var(--faint)}
+
+/* Post Detail */
+.post-detail{animation:fadeUp .3s ease}
+.detail-banner{height:4px;background:linear-gradient(90deg,var(--orange),var(--amber));border-radius:2px;margin-bottom:28px}
+.detail-cat{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin-bottom:10px}
+.detail-title{font-family:var(--display);font-size:48px;letter-spacing:.04em;line-height:.95;margin-bottom:14px;background:linear-gradient(90deg,#fff,var(--orange-l),#fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 5s linear infinite}
+.detail-meta{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:0.5px solid var(--border)}
+.detail-content{font-size:14px;line-height:1.85;color:rgba(255,255,255,0.65);margin-bottom:32px;white-space:pre-wrap}
+.comments-section{border-top:0.5px solid var(--border);padding-top:24px}
+.comments-title{font-family:var(--display);font-size:24px;letter-spacing:.06em;color:var(--orange);margin-bottom:20px}
+.comment-form{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:20px}
+.comment-input{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:13px;resize:vertical;min-height:80px;outline:none;transition:border-color .2s;margin-bottom:10px}
+.comment-input:focus{border-color:var(--orange)}
+.comment-input::placeholder{color:var(--faint)}
+.comment-list{display:flex;flex-direction:column;gap:12px}
+.comment-item{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;animation:slideIn .2s ease both;transition:border-color .2s}
+.comment-item:hover{border-color:rgba(249,115,22,.2)}
+.comment-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.comment-author{font-size:12px;font-weight:700;color:var(--orange-l);letter-spacing:.04em}
+.comment-date{font-size:10px;color:var(--faint)}
+.comment-text{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* Auth */
+.auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:24px;background:var(--bg)}
+.auth-orb1{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(249,115,22,0.1);filter:blur(100px);top:-100px;right:-80px;animation:drift 12s ease-in-out infinite}
+.auth-orb2{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(234,179,8,0.07);filter:blur(80px);bottom:-60px;left:-60px;animation:drift2 16s ease-in-out infinite}
+.auth-card{background:rgba(14,14,14,0.95);border:0.5px solid rgba(249,115,22,0.2);border-radius:18px;padding:44px 40px;width:100%;max-width:400px;position:relative;z-index:2;backdrop-filter:blur(20px);animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.auth-logo-text{font-family:var(--display);font-size:26px;letter-spacing:.1em;background:linear-gradient(90deg,#fff,var(--orange-l),var(--orange),#fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 4s linear infinite}
+.auth-title{font-family:var(--display);font-size:32px;letter-spacing:.06em;background:linear-gradient(90deg,#fff,var(--orange-l),#fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 5s linear infinite;margin-bottom:6px}
+.auth-sub{font-size:12px;letter-spacing:.04em;color:var(--muted);margin-bottom:28px}
+.form{display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:7px}
+.label{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.field input,.field select,.field textarea{width:100%}
+textarea{resize:vertical;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:border-color .2s}
+textarea:focus{border-color:var(--orange)}
+textarea::placeholder{color:var(--faint)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.auth-submit{width:100%;justify-content:center;padding:13px;font-size:13px}
+.auth-switch{text-align:center;margin-top:18px;font-size:12px;color:var(--faint)}
+.auth-link{color:var(--orange-l);cursor:pointer;font-weight:700}.auth-link:hover{text-decoration:underline}
+.auth-demo{margin-top:14px;padding:12px;background:var(--orange-d);border:0.5px solid rgba(249,115,22,.2);border-radius:var(--r);font-size:11px;color:var(--muted);line-height:1.7}
+
+.error-msg{font-size:12px;color:var(--red);background:var(--red-d);border:0.5px solid rgba(239,68,68,.2);border-radius:var(--r);padding:10px 14px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.b-tech{background:var(--orange-d);color:var(--orange-l);border:0.5px solid rgba(249,115,22,.3)}
+.b-life{background:var(--amber-d);color:var(--amber-l);border:0.5px solid rgba(234,179,8,.3)}
+.b-design{background:rgba(139,92,246,.12);color:#C4B5FD;border:0.5px solid rgba(139,92,246,.3)}
+.b-other{background:var(--surface2);color:var(--muted);border:0.5px solid var(--border)}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:#121212;border:0.5px solid rgba(249,115,22,.2);border-radius:16px;padding:32px;width:100%;max-width:540px;transform:translateY(16px) scale(.97);transition:transform .3s cubic-bezier(.34,1.4,.64,1)}
+.overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-family:var(--display);font-size:26px;letter-spacing:.06em;background:linear-gradient(90deg,#fff,var(--orange-l),#fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 4s linear infinite}
+.close-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:var(--r);transition:all .15s}
+.close-btn:hover{color:var(--text);background:var(--surface)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+
+/* Empty */
+.empty{text-align:center;padding:72px 20px;border:0.5px dashed rgba(249,115,22,.15);border-radius:var(--r-lg);animation:popIn .4s ease}
+.empty-icon{font-family:var(--display);font-size:64px;color:rgba(249,115,22,.15);margin-bottom:12px;animation:flicker 4s ease-in-out infinite}
+.empty-title{font-family:var(--display);font-size:28px;letter-spacing:.06em;background:linear-gradient(90deg,#fff,var(--orange-l),#fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:textShimmer 4s linear infinite;margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(249,115,22,.2);border-radius:4px}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{padding:20px 16px}
+  .stats{grid-template-columns:1fr 1fr}
+  .posts-grid{grid-template-columns:1fr}
+  .row2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="orb1"></div>
+<div class="orb2"></div>
+
+<!-- AUTH -->
+<div id="authScreen" class="auth-page">
+  <div class="auth-orb1"></div>
+  <div class="auth-orb2"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span style="font-family:var(--display);font-size:24px;color:var(--orange);animation:flicker 5s ease-in-out infinite">INK</span>
+      <span class="auth-logo-text">DROP</span>
+    </div>
+    <div id="loginView">
+      <h1 class="auth-title">Sign In</h1>
+      <p class="auth-sub">Continue to your blog</p>
+      <div class="form">
+        <div class="field"><label class="label">Email</label><input id="loginEmail" type="email" placeholder="you@example.com"></div>
+        <div class="field"><label class="label">Password</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+        <p id="loginErr" class="error-msg" style="display:none"></p>
+        <button class="btn btn-primary auth-submit" onclick="handleLogin()">Sign In →</button>
+      </div>
+      <p class="auth-switch">No account? <span class="auth-link" onclick="showRegister()">Create one</span></p>
+      <div class="auth-demo"><strong style="color:var(--orange-l)">Demo:</strong><br>admin@ink.com / admin123<br>user@ink.com / user123</div>
+    </div>
+    <div id="registerView" style="display:none">
+      <h1 class="auth-title">Join InkDrop</h1>
+      <p class="auth-sub">Start writing today</p>
+      <div class="form">
+        <div class="field"><label class="label">Full Name</label><input id="regName" type="text" placeholder="Bruce Wayne"></div>
+        <div class="field"><label class="label">Email</label><input id="regEmail" type="email" placeholder="you@example.com"></div>
+        <div class="field"><label class="label">Password</label><input id="regPass" type="password" placeholder="Min 6 characters"></div>
+        <p id="regErr" class="error-msg" style="display:none"></p>
+        <button class="btn btn-primary auth-submit" onclick="handleRegister()">Create Account →</button>
+      </div>
+      <p class="auth-switch">Have account? <span class="auth-link" onclick="showLogin()">Sign in</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="shell" style="display:none">
+  <aside class="sidebar">
+    <div>
+      <div class="logo">
+        <span class="logo-icon">INK</span>
+        <span class="logo-text">DROP</span>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" onclick="showPage('feed',this)">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Feed
+        </button>
+        <button class="nav-item" onclick="showPage('write',this)">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M11 2l3 3-9 9H2v-3L11 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Write
+        </button>
+        <button class="nav-item" onclick="showPage('myposts',this)">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          My Posts
+        </button>
+        <button class="nav-item" id="adminNav" onclick="showPage('admin',this)" style="display:none">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Admin
+        </button>
+      </nav>
+    </div>
+    <div>
+      <div class="user-card">
+        <div class="avatar" id="sideAvatar">U</div>
+        <div style="overflow:hidden;flex:1">
+          <p class="user-name" id="sideName">User</p>
+          <p class="user-role" id="sideRole">Reader</p>
+        </div>
+      </div>
+      <button class="btn btn-danger" style="width:100%;justify-content:center;font-size:10px" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- FEED -->
+    <div id="page-feed" class="page active">
+      <div class="page-header">
+        <div><h1 class="page-title">The Feed</h1><p class="page-sub">Latest stories from the community</p></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><p class="stat-label">Posts</p><p class="stat-num" id="s-posts">0</p></div>
+        <div class="stat s2"><p class="stat-label">Writers</p><p class="stat-num" id="s-writers">0</p></div>
+        <div class="stat"><p class="stat-label">Comments</p><p class="stat-num" id="s-comments">0</p></div>
+        <div class="stat s2"><p class="stat-label">Categories</p><p class="stat-num" id="s-cats">4</p></div>
+      </div>
+      <div class="toolbar">
+        <div class="filters">
+          <select id="catFilter" onchange="renderFeed()">
+            <option value="">All Categories</option>
+            <option value="Tech">Tech</option>
+            <option value="Life">Life</option>
+            <option value="Design">Design</option>
+            <option value="Other">Other</option>
+          </select>
+          <input type="search" id="feedSearch" placeholder="Search posts..." style="width:200px" oninput="renderFeed()">
+        </div>
+      </div>
+      <div id="feedGrid" class="posts-grid"></div>
+    </div>
+
+    <!-- POST DETAIL -->
+    <div id="page-detail" class="page">
+      <button class="btn btn-ghost" style="margin-bottom:20px;animation:fadeUp .3s ease" onclick="showPage('feed',document.querySelector('.nav-item'))">← Back to Feed</button>
+      <div id="postDetail"></div>
+    </div>
+
+    <!-- WRITE -->
+    <div id="page-write" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title" id="writeTitle">Write</h1><p class="page-sub" id="writeSub">Share your thoughts with the world</p></div>
+      </div>
+      <div style="animation:fadeUp .3s ease;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:28px">
+        <div class="form">
+          <input type="hidden" id="editPostId">
+          <div class="field"><label class="label">Title *</label><input id="postTitle" placeholder="Your story begins here..."></div>
+          <div class="row2">
+            <div class="field"><label class="label">Category</label>
+              <select id="postCat">
+                <option value="Tech">Tech</option>
+                <option value="Life">Life</option>
+                <option value="Design">Design</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="field"><label class="label">Excerpt</label><input id="postExcerpt" placeholder="One-line summary..."></div>
+          </div>
+          <div class="field"><label class="label">Content *</label><textarea id="postContent" placeholder="Write your story..." style="min-height:200px"></textarea></div>
+          <p id="postErr" class="error-msg" style="display:none"></p>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="btn btn-ghost" onclick="resetWriteForm()">Clear</button>
+            <button class="btn btn-primary" onclick="savePost()">Publish Post →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY POSTS -->
+    <div id="page-myposts" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">My Posts</h1><p class="page-sub">Your published stories</p></div>
+      </div>
+      <div id="myPostsGrid" class="posts-grid"></div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="page-admin" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">Admin</h1><p class="page-sub">Manage all content</p></div>
+      </div>
+      <div id="adminContent"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const DB={
+  get:k=>JSON.parse(localStorage.getItem('id_'+k)||'null'),
+  set:(k,v)=>localStorage.setItem('id_'+k,JSON.stringify(v)),
+  arr:k=>JSON.parse(localStorage.getItem('id_'+k)||'[]'),
+};
+let currentUser=null;
+let viewingPostId=null;
+
+function seed(){
+  if(DB.get('seeded')) return;
+  DB.set('users',[
+    {id:1,name:'Admin User',email:'admin@ink.com',password:btoa('admin123'),role:'admin'},
+    {id:2,name:'Jane Writer',email:'user@ink.com',password:btoa('user123'),role:'user'},
+  ]);
+  const now=Date.now();
+  DB.set('posts',[
+    {id:now+1,authorId:1,authorName:'Admin User',title:'Why Full-Stack Dev Is Still King',category:'Tech',excerpt:'The case for being a generalist in a specialist world.',content:'Full-stack development often gets dismissed as "jack of all trades, master of none." But in 2026, the ability to move fluidly between frontend and backend is arguably more valuable than ever.\n\nWhen you understand both sides of the stack, you debug faster, design better APIs, and ship features without waiting on someone else. You become the person who unblocks teams.\n\nThe tools have never been better. Next.js, Neon, and Vercel mean a solo developer can build and deploy production-grade SaaS in days. That\'s not a liability — that\'s leverage.',date:'2026-04-20',comments:[]},
+    {id:now+2,authorId:2,authorName:'Jane Writer',title:'The Art of the Early Morning',category:'Life',excerpt:'How waking up at 5am changed the way I work.',content:'I resisted the 5am wake-up cult for years. It felt performative. A productivity flex dressed up as wisdom.\n\nThen I tried it — not because of a podcast, but because I had a deadline and no other quiet time to think.\n\nWhat I found: the world at 5am is genuinely different. No notifications. No context-switching. Just the problem and you. That silence compounds. Four hours of deep work before 9am changes your relationship with the rest of the day.',date:'2026-04-25',comments:[{id:1,authorId:1,authorName:'Admin User',text:'This resonates deeply. The silence is the whole point.',date:'2026-04-26'}]},
+    {id:now+3,authorId:1,authorName:'Admin User',title:'Design Systems Are Documentation',category:'Design',excerpt:'Stop treating your design system as a UI kit.',content:'Most teams build design systems and then wonder why nobody uses them properly.\n\nThe problem: they\'re built as tools, not as communication. A design system is not just a collection of components — it\'s a shared language. Every token, every variant, every spacing rule encodes a decision.\n\nDocument the why, not just the what. A button with 8px padding isn\'t arbitrary — it\'s a deliberate choice about touch targets and visual rhythm. Explain that. Your design system will survive team turnover when the reasoning lives alongside the rules.',date:'2026-04-30',comments:[]},
+  ]);
+  DB.set('seeded',true);
+}
+
+function showRegister(){document.getElementById('loginView').style.display='none';document.getElementById('registerView').style.display='block'}
+function showLogin(){document.getElementById('registerView').style.display='none';document.getElementById('loginView').style.display='block'}
+function showErr(el,msg){el.textContent=msg;el.style.display='block'}
+
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const err=document.getElementById('loginErr');err.style.display='none';
+  if(!email||!pass){showErr(err,'Fill in all fields');return}
+  const user=DB.arr('users').find(u=>u.email===email&&u.password===btoa(pass));
+  if(!user){showErr(err,'Invalid email or password');return}
+  DB.set('session',user);launchApp(user);
+}
+
+function handleRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPass').value;
+  const err=document.getElementById('regErr');err.style.display='none';
+  if(!name||!email||!pass){showErr(err,'Fill in all fields');return}
+  if(pass.length<6){showErr(err,'Password min 6 chars');return}
+  const users=DB.arr('users');
+  if(users.find(u=>u.email===email)){showErr(err,'Email already used');return}
+  const user={id:Date.now(),name,email,password:btoa(pass),role:'user'};
+  DB.set('users',[...users,user]);DB.set('session',user);launchApp(user);
+}
+
+function handleLogout(){
+  DB.set('session',null);currentUser=null;
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  showLogin();
+}
+
+function launchApp(user){
+  currentUser=user;
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('appScreen').style.display='flex';
+  document.getElementById('sideName').textContent=user.name;
+  document.getElementById('sideRole').textContent=user.role==='admin'?'Admin':'Writer';
+  document.getElementById('sideAvatar').textContent=user.name.charAt(0).toUpperCase();
+  document.getElementById('adminNav').style.display=user.role==='admin'?'flex':'none';
+  renderFeed();renderMyPosts();
+  if(user.role==='admin') renderAdmin();
+}
+
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='feed') renderFeed();
+  if(id==='myposts') renderMyPosts();
+  if(id==='admin') renderAdmin();
+  if(id==='write'){resetWriteForm();}
+}
+
+function catBadgeClass(cat){return cat==='Tech'?'b-tech':cat==='Life'?'b-life':cat==='Design'?'b-design':'b-other'}
+
+function renderFeed(){
+  const cat=document.getElementById('catFilter')?.value||'';
+  const search=(document.getElementById('feedSearch')?.value||'').toLowerCase();
+  const posts=DB.arr('posts').filter(p=>{
+    if(cat&&p.category!==cat) return false;
+    if(search&&!p.title.toLowerCase().includes(search)&&!p.excerpt.toLowerCase().includes(search)) return false;
+    return true;
+  }).reverse();
+  const allPosts=DB.arr('posts');
+  const allComments=allPosts.reduce((s,p)=>s+(p.comments?.length||0),0);
+  const writers=new Set(allPosts.map(p=>p.authorId)).size;
+  document.getElementById('s-posts').textContent=allPosts.length;
+  document.getElementById('s-writers').textContent=writers;
+  document.getElementById('s-comments').textContent=allComments;
+  const grid=document.getElementById('feedGrid');
+  if(!posts.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><p class="empty-icon">INK</p><p class="empty-title">Nothing Here Yet</p><p class="empty-sub">Be the first to write something.</p><button class="btn btn-primary" onclick="showPage('write',document.querySelectorAll('.nav-item')[1])">Write Now →</button></div>`;return}
+  grid.innerHTML=posts.map((p,i)=>`
+    <div class="post-card" style="animation-delay:${i*.05}s" onclick="viewPost(${p.id})">
+      <div class="post-banner"></div>
+      <div class="post-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="badge ${catBadgeClass(p.category)}">${p.category}</span>
+        </div>
+        <p class="post-title">${esc(p.title)}</p>
+        <p class="post-excerpt">${esc(p.excerpt||p.content.slice(0,120))}</p>
+        <div class="post-footer">
+          <span class="post-author">${esc(p.authorName)}</span>
+          <div class="post-meta">
+            <span class="comment-count">
+              <svg width="12" height="12" fill="none" viewBox="0 0 16 16"><path d="M2 2h12v10H9l-3 3v-3H2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+              ${p.comments?.length||0}
+            </span>
+            <span class="post-date">${p.date}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function viewPost(id){
+  viewingPostId=id;
+  const posts=DB.arr('posts');
+  const p=posts.find(x=>x.id===id);
+  if(!p) return;
+  const isOwner=p.authorId===currentUser.id||currentUser.role==='admin';
+  document.getElementById('postDetail').innerHTML=`
+    <div class="post-detail">
+      <div class="detail-banner"></div>
+      <p class="detail-cat"><span class="badge ${catBadgeClass(p.category)}">${p.category}</span></p>
+      <h1 class="detail-title">${esc(p.title)}</h1>
+      <div class="detail-meta">
+        <span style="font-size:12px;font-weight:700;color:var(--orange-l)">${esc(p.authorName)}</span>
+        <span style="font-size:11px;color:var(--faint)">${p.date}</span>
+        <span style="font-size:11px;color:var(--faint)">${p.comments?.length||0} comments</span>
+        ${isOwner?`<button class="btn btn-ghost btn-sm" onclick="editPost(${p.id})">Edit</button><button class="btn btn-danger btn-sm" onclick="deletePost(${p.id})">Delete</button>`:''}
+      </div>
+      <div class="detail-content">${esc(p.content)}</div>
+      <div class="comments-section">
+        <p class="comments-title">Comments (${p.comments?.length||0})</p>
+        <div class="comment-form">
+          <textarea class="comment-input" id="commentInput" placeholder="Add a comment..."></textarea>
+          <button class="btn btn-primary btn-sm" onclick="addComment(${p.id})">Post Comment →</button>
+        </div>
+        <div class="comment-list" id="commentList">
+          ${(p.comments||[]).length===0?`<p style="font-size:13px;color:var(--muted)">No comments yet. Be the first!</p>`:''}
+          ${(p.comments||[]).map((c,i)=>`
+            <div class="comment-item" style="animation-delay:${i*.04}s">
+              <div class="comment-header">
+                <span class="comment-author">${esc(c.authorName)}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="comment-date">${c.date}</span>
+                  ${(c.authorId===currentUser.id||currentUser.role==='admin')?`<button class="btn btn-danger btn-sm" onclick="deleteComment(${p.id},${c.id})">×</button>`:''}
+                </div>
+              </div>
+              <p class="comment-text">${esc(c.text)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  showPage('detail',null);
+}
+
+function addComment(postId){
+  const text=document.getElementById('commentInput').value.trim();
+  if(!text) return;
+  const posts=DB.arr('posts');
+  const idx=posts.findIndex(p=>p.id===postId);
+  if(idx===-1) return;
+  if(!posts[idx].comments) posts[idx].comments=[];
+  posts[idx].comments.push({id:Date.now(),authorId:currentUser.id,authorName:currentUser.name,text,date:new Date().toISOString().slice(0,10)});
+  DB.set('posts',posts);
+  viewPost(postId);
+}
+
+function deleteComment(postId,commentId){
+  const posts=DB.arr('posts');
+  const idx=posts.findIndex(p=>p.id===postId);
+  if(idx===-1) return;
+  posts[idx].comments=posts[idx].comments.filter(c=>c.id!==commentId);
+  DB.set('posts',posts);
+  viewPost(postId);
+}
+
+function savePost(){
+  const title=document.getElementById('postTitle').value.trim();
+  const content=document.getElementById('postContent').value.trim();
+  const err=document.getElementById('postErr');err.style.display='none';
+  if(!title||!content){showErr(err,'Title and content are required');return}
+  const editId=document.getElementById('editPostId').value;
+  const posts=DB.arr('posts');
+  if(editId){
+    const idx=posts.findIndex(p=>p.id===Number(editId));
+    if(idx!==-1){
+      posts[idx].title=title;posts[idx].content=content;
+      posts[idx].category=document.getElementById('postCat').value;
+      posts[idx].excerpt=document.getElementById('postExcerpt').value.trim();
+    }
+  } else {
+    posts.push({id:Date.now(),authorId:currentUser.id,authorName:currentUser.name,title,category:document.getElementById('postCat').value,excerpt:document.getElementById('postExcerpt').value.trim(),content,date:new Date().toISOString().slice(0,10),comments:[]});
+  }
+  DB.set('posts',posts);
+  resetWriteForm();
+  renderFeed();renderMyPosts();
+  showPage('feed',document.querySelector('.nav-item'));
+}
+
+function editPost(id){
+  const p=DB.arr('posts').find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('editPostId').value=id;
+  document.getElementById('postTitle').value=p.title;
+  document.getElementById('postCat').value=p.category;
+  document.getElementById('postExcerpt').value=p.excerpt||'';
+  document.getElementById('postContent').value=p.content;
+  document.getElementById('writeTitle').textContent='Edit Post';
+  document.getElementById('writeSub').textContent='Update your story';
+  showPage('write',document.querySelectorAll('.nav-item')[1]);
+}
+
+async function deletePost(id){
+  if(!confirm('Delete this post?')) return;
+  DB.set('posts',DB.arr('posts').filter(p=>p.id!==id));
+  renderFeed();renderMyPosts();
+  showPage('feed',document.querySelector('.nav-item'));
+}
+
+function resetWriteForm(){
+  document.getElementById('editPostId').value='';
+  document.getElementById('postTitle').value='';
+  document.getElementById('postCat').value='Tech';
+  document.getElementById('postExcerpt').value='';
+  document.getElementById('postContent').value='';
+  document.getElementById('postErr').style.display='none';
+  document.getElementById('writeTitle').textContent='Write';
+  document.getElementById('writeSub').textContent='Share your thoughts with the world';
+}
+
+function renderMyPosts(){
+  const posts=DB.arr('posts').filter(p=>p.authorId===currentUser.id).reverse();
+  const grid=document.getElementById('myPostsGrid');
+  if(!posts.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><p class="empty-icon">INK</p><p class="empty-title">No Posts Yet</p><p class="empty-sub">Write your first story.</p><button class="btn btn-primary" onclick="showPage('write',document.querySelectorAll('.nav-item')[1])">Write Now →</button></div>`;return}
+  grid.innerHTML=posts.map((p,i)=>`
+    <div class="post-card" style="animation-delay:${i*.05}s" onclick="viewPost(${p.id})">
+      <div class="post-banner"></div>
+      <div class="post-body">
+        <span class="badge ${catBadgeClass(p.category)}">${p.category}</span>
+        <p class="post-title" style="margin-top:8px">${esc(p.title)}</p>
+        <p class="post-excerpt">${esc(p.excerpt||p.content.slice(0,100))}</p>
+        <div class="post-footer">
+          <span class="post-date">${p.date}</span>
+          <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm" onclick="editPost(${p.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePost(${p.id})">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAdmin(){
+  if(currentUser.role!=='admin') return;
+  const posts=DB.arr('posts').reverse();
+  const users=DB.arr('users');
+  document.getElementById('adminContent').innerHTML=`
+    <p style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:12px">All Posts (${posts.length})</p>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Title</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Author</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Category</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Comments</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Actions</th>
+      </tr></thead>
+      <tbody>${posts.map(p=>`
+        <tr style="transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background=''">
+          <td style="padding:12px 14px;font-size:13px;font-weight:500;border-bottom:0.5px solid rgba(255,255,255,.04);cursor:pointer;color:var(--orange-l)" onclick="viewPost(${p.id})">${esc(p.title)}</td>
+          <td style="padding:12px 14px;font-size:12px;color:var(--muted);border-bottom:0.5px solid rgba(255,255,255,.04)">${esc(p.authorName)}</td>
+          <td style="padding:12px 14px;border-bottom:0.5px solid rgba(255,255,255,.04)"><span class="badge ${catBadgeClass(p.category)}">${p.category}</span></td>
+          <td style="padding:12px 14px;font-size:13px;color:var(--muted);border-bottom:0.5px solid rgba(255,255,255,.04)">${p.comments?.length||0}</td>
+          <td style="padding:12px 14px;border-bottom:0.5px solid rgba(255,255,255,.04)">
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="editPost(${p.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deletePost(${p.id})">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')}</tbody>
+    </table>
+    <p style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:28px 0 12px">Users (${users.length})</p>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Name</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Email</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Role</th>
+        <th style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 14px;text-align:left;border-bottom:0.5px solid var(--border)">Posts</th>
+      </tr></thead>
+      <tbody>${users.map(u=>`
+        <tr>
+          <td style="padding:12px 14px;font-size:13px;font-weight:500;border-bottom:0.5px solid rgba(255,255,255,.04)">${esc(u.name)}</td>
+          <td style="padding:12px 14px;font-size:12px;color:var(--muted);border-bottom:0.5px solid rgba(255,255,255,.04)">${esc(u.email)}</td>
+          <td style="padding:12px 14px;border-bottom:0.5px solid rgba(255,255,255,.04)"><span class="badge ${u.role==='admin'?'b-tech':'b-other'}">${u.role}</span></td>
+          <td style="padding:12px 14px;font-size:13px;color:var(--muted);border-bottom:0.5px solid rgba(255,255,255,.04)">${DB.arr('posts').filter(p=>p.authorId===u.id).length}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table>
+  `;
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'))});
+
+seed();
+const session=DB.get('session');
+if(session) launchApp(session);
+</script>
+</body>
+</html>
